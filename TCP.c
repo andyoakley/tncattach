@@ -1,35 +1,43 @@
 #include "TCP.h"
 
-int open_tcp(char* ip, int port) {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+int open_tcp(char* ip, char *port) {
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    int sfd, s;
 
-    if (sockfd < 0) {
-        perror("Could not open AF_INET socket");
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM; 
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;          
+
+    s = getaddrinfo(ip, port, &hints, &result);
+    if (s != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+        exit(EXIT_FAILURE);
+    }
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        sfd = socket(rp->ai_family, rp->ai_socktype,
+                     rp->ai_protocol);
+
+        if (sfd == -1)
+            continue;
+
+        if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
+            break;
+
+       close(sfd);
+    }
+
+    freeaddrinfo(result);
+
+    if (sfd == -1) {
+        perror("Could not open");
         exit(1);
     }
 
-    struct hostent *server;
-    struct sockaddr_in serv_addr;
-
-    server = gethostbyname(ip);
-
-    if (server == NULL) {
-        perror("Error resolving host");
-        exit(1);
-    }
-
-    memset(&serv_addr, 0, sizeof(serv_addr)); 
-    serv_addr.sin_family = AF_INET;
-
-    memcpy(server->h_addr, &serv_addr.sin_addr.s_addr, server->h_length);
-    serv_addr.sin_port = htons(port);
-
-    if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("Could not connect TCP socket");
-        exit(1);
-    }
-
-    return sockfd;
+    return sfd;
 }
 
 int close_tcp(int fd) {

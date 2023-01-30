@@ -40,7 +40,7 @@ char* ipv4_addr;
 char* netmask;
 
 char* tcp_host;
-int tcp_port;
+char* tcp_port;
 
 int mtu;
 int device_type = IF_TUN;
@@ -289,7 +289,7 @@ struct arguments {
     bool valid_id;
     int id_interval;
     int baudrate;
-    int tcpport;
+    char *tcpport;
     int mtu;
     bool tap;
     bool daemon;
@@ -488,7 +488,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
         case 'P':
             arguments->set_tcp_port = true;
-            tcp_port = atoi(arg);
+//            tcp_port = atoi(arg);
+            tcp_port = (char*)malloc(strlen(arg)+1);
+            strcpy(tcp_port, arg);
             break;
 
         case 1:
